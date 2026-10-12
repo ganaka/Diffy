@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Diff & Text Analytics Studio</title>
+    <link rel="stylesheet" href="./_res/css/styles.css">
+  </head>
+<body>
+
+<!-- Google Search Style Header/Toolbar Template Framework -->
+  <header class="google-header">
+      <div class="header-left">
+          <div class="logo">
+              <span>D</span><span>i</span><span>f</span><span>f</span><span>y</span><span>!</span>
+          </div>
+          <div class="toolbar-tabs">
+              <button class="tool-btn primary" type="button" onclick="compareText()">Strict Comparison</button>
+              <button class="tool-btn" type="button" onclick="resetForm()">Clear All</button>
+              <button class="tool-btn" type="button" onclick="openSettingsModal()">⚙️ Settings</button>
+          </div>
+      </div>
+      <div class="header-right" style="display: flex; align-items: center; gap: 14px;">
+          <div id="similarity-score" class="score-badge" style="display: none;">Similarity: 100%</div>
+          <button id="header-scroll-btn" class="scroll-top-btn" type="button" title="Scroll to Top" onclick="scrollToTop()">↑</button>
+          
+          <div class="toggle-container" onclick="event.stopPropagation()">
+              <span class="toggle-label">Dark Mode</span>
+              <label class="switch-wrapper">
+                  <input type="checkbox" id="theme-toggle-checkbox" onchange="handleThemeToggleEvent(this)">
+                  <span class="slider-track">
+                      <span class="slider-text-on">ON</span>
+                      <span class="slider-text-off">OFF</span>
+                  </span>
+              </label>
+          </div>
+      </div>
+  </header>
+
+  <div class="container">
+      <div class="grid-layout">
+          <div class="pane">
+              <label id="label-orig" for="file-orig">Original Text (Left)</label>
+              <input type="file" id="file-orig">
+              <textarea id="text-orig" placeholder="Type or paste original content..."></textarea>
+          </div>
+          <div class="pane">
+              <label id="label-mod" for="file-mod">Modified Text (Right)</label>
+              <input type="file" id="file-mod">
+              <textarea id="text-mod" placeholder="Type or paste modified content..."></textarea>
+          </div>
+      </div>
+
+      <div id="output-container" class="output-pane">
+          <h2>Side-by-Side Evaluation View</h2>
+          <div class="diff-view">
+              <div id="diff-output"></div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Comparison Metrics Summary Movable Popup -->
+  <div id="summary-popup" class="movable-popup">
+      <div class="popup-header" onmousedown="initPopupDrag(event, 'summary-popup')">
+          <span>Comparison Metrics Summary</span>
+          <div>
+              <button type="button" class="popup-min-btn" onclick="togglePopupCollapse('summary-popup')">−</button>
+              <button type="button" class="popup-close-btn" onclick="closeMovablePopup('summary-popup')">×</button>
+          </div>
+      </div>
+      <div class="popup-body" style="max-height: 410px;">
+          <div class="summary-section">
+              <div class="section-title-bar" onclick="toggleSection('section-changes', 'arrow-changes')">
+                  <span class="section-arrow" id="arrow-changes">▼</span>
+                  <span id="summary-total-header">Total Changes Log</span>
+              </div>
+              <div id="section-changes" class="section-content">
+                  <div id="summary-total" class="summary-total" style="font-weight:bold; margin-bottom:6px;">Total Character Changes: 0</div>
+                  <ul id="summary-list" class="summary-list"></ul>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- File/Text Stats View Movable Popup -->
+  <div id="stats-popup" class="movable-popup">
+      <div class="popup-header" onmousedown="initPopupDrag(event, 'stats-popup')">
+          <span>File/Text Stats View</span>
+          <div>
+              <button type="button" class="popup-min-btn" onclick="togglePopupCollapse('stats-popup')">−</button>
+              <button type="button" class="popup-close-btn" onclick="closeMovablePopup('stats-popup')">×</button>
+          </div>
+      </div>
+      <div class="popup-body" style="max-height: 410px;">
+          <div class="summary-section">
+              <div class="section-title-bar" onclick="toggleSection('section-stats', 'arrow-stats')">
+                  <span class="section-arrow" id="arrow-stats">▼</span>
+                  <span>Text Profile Metrics</span>
+              </div>
+              <div id="section-stats" class="section-content">
+                  <table class="metrics-grid-table">
+                      <thead>
+                          <tr>
+                              <th>Metric Property</th>
+                              <th>File 1 (Left)</th>
+                              <th>File 2 (Right)</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          <tr><td>Characters Count</td><td id="stats-chars-left">0</td><td id="stats-chars-right">0</td></tr>
+                          <tr><td>Words Count</td><td id="stats-words-left">0</td><td id="stats-words-right">0</td></tr>
+                          <tr><td>Lines Count</td><td id="stats-lines-left">0</td><td id="stats-lines-right">0</td></tr>
+                          <tr><td>Min Line Width</td><td id="stats-min-left">0</td><td id="stats-min-right">0</td></tr>
+                          <tr><td>Max Line Width</td><td id="stats-max-left">0</td><td id="stats-max-right">0</td></tr>
+                      </tbody>
+                  </table>
+                  <div id="distribution-chart-wrapper" style="margin-top: 14px; border-top: 1px dashed var(--border-color); padding-top: 12px; display: none;">
+                      <span style="font-weight:600; font-size:11px; color:var(--text-secondary); display:block; margin-bottom:8px; text-transform:uppercase;">Top Character Distribution Compared</span>
+                      <div id="chart-bars-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Notepad++ Style Preferences Modal Framework Popup Window -->
+  <div id="settings-modal" class="movable-popup">
+      <div class="popup-header" onmousedown="initPopupDrag(event, 'settings-modal')">
+          <span>Preferences / Configuration Settings</span>
+          <button type="button" class="popup-close-btn" onclick="closeMovablePopup('settings-modal')">×</button>
+      </div>
+      <div class="settings-layout">
+          <div class="settings-sidebar">
+              <div id="side-item-ext" class="sidebar-item active" onclick="switchSettingsPane('pane-ext', 'side-item-ext')">File Extensions</div>
+              <div id="side-item-stats" class="sidebar-item" onclick="switchSettingsPane('pane-stats', 'side-item-stats')">File/Text Stats</div>
+              <div id="side-item-summary" class="sidebar-item" onclick="switchSettingsPane('pane-summary', 'side-item-summary')">Comparison Summary</div>
+          </div>
+          <div class="settings-content-pane">
+              <!-- Content Pane 1: File Extensions -->
+              <div id="pane-ext" class="settings-pane-section active">
+                  <h3>File Extensions Setup</h3>
+                  <p style="font-size:12px; color:var(--text-secondary); margin:4px 0 12px 0;">
+                      Click the pencil icon (✏️) to edit or modify custom extensions. Click the cross icon (❌) to delete a type.
+                  </p>
+                  <div id="editable-extensions-box" class="extensions-grid-list"></div>
+                  <div class="custom-input-row" style="padding:0; border:none; margin-top:12px;">
+                      <input type="text" id="custom-ext-input" class="custom-type-field" placeholder="e.g. .css Cascading Stylesheet">
+                      <button type="button" id="ext-action-btn" class="custom-type-btn" onclick="handleExtensionActionClick()">Add</button>
+                      <button type="button" id="ext-cancel-btn" class="custom-type-btn" style="background:#5f6368; display:none;" onclick="cancelExtensionEditingState()">Cancel</button>
+                  </div>
+              </div>
+              <!-- Content Pane 2: File/Text Stats -->
+              <div id="pane-stats" class="settings-pane-section">
+                  <h3>File/Text Stats View Settings</h3>
+                  <div class="setting-row-group" style="margin-top:10px;">
+                      <div class="toggle-container">
+                          <span class="toggle-label" style="min-width:140px; display:inline-block;">Show Profile Window</span>
+                          <label class="switch-wrapper">
+                              <input type="checkbox" id="toggle-stats-popup" checked onchange="updatePopupVisibilityState('stats-popup', this.checked)">
+                              <span class="slider-track"><span class="slider-text-on">ON</span><span class="slider-text-off">OFF</span></span>
+                          </label>
+                      </div>
+                  </div>
+              </div>
+              <!-- Content Pane 3: Comparison Summary -->
+              <div id="pane-summary" class="settings-pane-section">
+                  <h3>Comparison Metrics Configuration</h3>
+                  <div class="setting-row-group" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+                      <label style="font-size:13px; font-weight:500;">Comparison Precision Tier Level:</label>
+                      <select id="diff-level-select" class="custom-type-field" style="width:100%; height:32px; padding:4px 8px;">
+                          <option value="strict" selected>Strict Mode (Exact Identity Character Match)</option>
+                          <option value="ignore-whitespace">Ignore Trailing & Duplicate Blank Spaces</option>
+                          <option value="case-insensitive">Case Insensitive Evaluation Tier (A == a)</option>
+                      </select>
+                  </div>
+                  <div class="setting-row-group" style="margin-top:14px;">
+                      <div class="toggle-container">
+                          <span class="toggle-label" style="min-width:140px; display:inline-block;">Show Metrics Window</span>
+                          <label class="switch-wrapper">
+                              <input type="checkbox" id="toggle-summary-popup" checked onchange="updatePopupVisibilityState('summary-popup', this.checked)">
+                              <span class="slider-track"><span class="slider-text-on">ON</span><span class="slider-text-off">OFF</span></span>
+                          </label>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <script src="./_res/js/app.js"></script>
+</body>
+</html>
